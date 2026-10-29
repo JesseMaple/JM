@@ -1,8 +1,12 @@
-#暴力算法
-直接使用双循环求出所需下标
-##代码如下
+# 暴力算法<br>
+直接使用双循环求出所需下标<br>
+## 代码如下
 
 以 *Java* 为例：
+<details>
+	<summary>点击展开</summary>
+
+
 ```JAVA
 class Solution{
     public int[] twoSum(int[] nums,int target){
@@ -19,11 +23,17 @@ class Solution{
 }
 ```
 
-#哈希表
-创建一个哈希表实例，单循环遍历数组，对每个元素进行操作，如果该元素所需的数字未被哈希表实例记录则记录，如果已被记录则返回该pair
-##代码如下
+</details>
+
+# 哈希表<br>
+创建一个哈希表实例，单循环遍历数组，对每个元素进行操作，如果该元素所需的数字未被哈希表实例记录则记录，如果已被记录则返回该pair<br>
+## 代码如下
 
 以 *Java*  为例
+<details>
+	<summary>点击展开</summary>
+
+
 ```JAVA
 class Solution{
     public int[] twoSum(int[] nums,int target){
@@ -40,11 +50,17 @@ class Solution{
 }
 ```
 
-#排序+头尾双指针
-将数组有序化，然后通过头尾交替推进寻找所需下标
-##代码如下
+</details>
+
+# 排序+头尾双指针<br>
+将数组有序化，然后通过头尾交替推进寻找所需下标<br>
+## 代码如下
 
 以 *Java* 为例
+<details>
+	<summary>点击展开</summary>
+
+
 ```JAVA
 import java.util.Arrays;
 
@@ -80,3 +96,5 @@ class Solution {
     }
 }
 ```
+
+</details>
