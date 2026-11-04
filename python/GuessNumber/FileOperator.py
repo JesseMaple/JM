@@ -1,61 +1,62 @@
 import json
+import sys
+from pathlib import Path
 
-file_path = "GameData.json"
+if getattr(sys, 'frozen', False):
+    # 打包模式：以 exe 所在目录为基准
+    base_path = Path(sys.executable).parent
+else:
+    # 开发模式：以脚本所在目录为基准
+    base_path = Path(__file__).parent
 
-_DEFAULT = {"victory_times": 0, "max_time": None, "min_time": None}
-
+file_path = base_path / "GameData.json"
 
 def _load():
-    """读整个文件，文件不存在/内容坏了就返回默认值"""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        data = {}
-    except json.JSONDecodeError:
-        data = {}
-    return {**_DEFAULT, **data}          # 补齐缺失字段，防止旧文件没新字段
-
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 def _save(data):
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
+        json.dump(data, f)
 
-
-# ---- 读 ----
 def load_victory_times():
-    return _load()["victory_times"]
+    return _load().get("victory_times", 0)
 
 def load_max():
-    return _load()["max_time"]
+    return _load().get("max_time", None)
 
 def load_min():
-    return _load()["min_time"]
+    return _load().get("min_time", None)
 
-
-# ---- 写（读-改-写，只动一个字段）----
-def save_victory_times(victory_times):
+def save_victory_times(v):
     data = _load()
-    data["victory_times"] = victory_times
+    data["victory_times"] = v
     _save(data)
 
-def save_max(max_time):
+def save_max(v):
     data = _load()
-    data["max_time"] = max_time
+    data["max_time"] = v
     _save(data)
 
-def save_min(min_time):
+def save_min(v):
     data = _load()
-    data["min_time"] = min_time
+    data["min_time"] = v
     _save(data)
 
-
-# ---- 清空（等价于把该字段写回默认值）----
 def clear_victory_times():
-    save_victory_times(_DEFAULT["victory_times"])
+    data = _load()
+    if "victory_times" in data: del data["victory_times"]
+    _save(data)
 
 def clear_max():
-    save_max(_DEFAULT["max_time"])
+    data = _load()
+    if "max_time" in data: del data["max_time"]
+    _save(data)
 
 def clear_min():
-    save_min(_DEFAULT["min_time"])
+    data = _load()
+    if "min_time" in data: del data["min_time"]
+    _save(data)
