@@ -1,5 +1,3 @@
-# 适配GuessGUI、GUI2_0
-
 from GuessGUI import GuessGUI
 
 if __name__ == "__main__":
