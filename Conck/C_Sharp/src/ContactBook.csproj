@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ContactBook</RootNamespace>
+    <AssemblyName>ContactBook</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.0</Version>
+    <Product>电话簿</Product>
+    <AssemblyTitle>电话簿</AssemblyTitle>
+    <Description>单机电话簿：联系人卡片、拼音分组侧边栏与模糊搜索</Description>
+  </PropertyGroup>
+
+</Project>

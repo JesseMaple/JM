@@ -1,0 +1,201 @@
+<Window x:Class="ContactBook.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="电话簿" Width="1180" Height="800" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen" Background="#EEF3F9"
+        FontFamily="{StaticResource UiFont}" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Grid x:Name="Root">
+        <!-- ================= 背景（参照 index.html 的浅蓝渐变 + 冷/暖光晕） ================= -->
+        <Grid IsHitTestVisible="False">
+            <Border>
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#F7FAFD" Offset="0" />
+                        <GradientStop Color="#EEF3F9" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+            <Border>
+                <Border.Background>
+                    <RadialGradientBrush Center="0.06,-0.14" GradientOrigin="0.06,-0.14" RadiusX="0.66" RadiusY="0.62">
+                        <GradientStop Color="#B8D9ECFF" Offset="0" />
+                        <GradientStop Color="#00D9ECFF" Offset="1" />
+                    </RadialGradientBrush>
+                </Border.Background>
+            </Border>
+            <Border>
+                <Border.Background>
+                    <RadialGradientBrush Center="0.97,-0.06" GradientOrigin="0.97,-0.06" RadiusX="0.55" RadiusY="0.52">
+                        <GradientStop Color="#B9FFE9C9" Offset="0" />
+                        <GradientStop Color="#00FFE9C9" Offset="1" />
+                    </RadialGradientBrush>
+                </Border.Background>
+            </Border>
+            <Border>
+                <Border.Background>
+                    <RadialGradientBrush Center="0.44,1.16" GradientOrigin="0.44,1.16" RadiusX="0.6" RadiusY="0.55">
+                        <GradientStop Color="#8CE7EEFC" Offset="0" />
+                        <GradientStop Color="#00E7EEFC" Offset="1" />
+                    </RadialGradientBrush>
+                </Border.Background>
+            </Border>
+        </Grid>
+
+        <!-- ================= 内容区 ================= -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="168" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="112" />
+            </Grid.RowDefinitions>
+
+            <!-- 搜索栏 -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left"
+                        VerticalAlignment="Top" Margin="96,50,0,0" Height="56">
+                <Grid Width="760" Height="56">
+                <Border x:Name="SearchField" Height="56" Margin="26,0,0,0" CornerRadius="28"
+                        Background="#F2FFFFFF" BorderBrush="#DCE6F0" BorderThickness="1"
+                        Effect="{StaticResource CardShadow}">
+                    <Grid>
+                        <TextBlock x:Name="Placeholder" Text="搜索姓名、电话、邮箱、地址或分组…"
+                                   Foreground="#9AAABB" FontSize="15" Margin="64,0,24,0"
+                                   VerticalAlignment="Center" IsHitTestVisible="False" />
+                        <TextBox x:Name="SearchBox" FontSize="15.5" Foreground="{StaticResource InkBrush}"
+                                 Background="Transparent" BorderThickness="0" Margin="62,0,18,0"
+                                 VerticalContentAlignment="Center" Padding="2,0,0,0"
+                                 TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown" />
+                    </Grid>
+                </Border>
+
+                <Button x:Name="SearchButton" Width="52" Height="52" HorizontalAlignment="Left"
+                        VerticalAlignment="Top" Margin="0,2,0,0" Cursor="Hand" Click="SearchButton_Click"
+                        AutomationProperties.Name="搜索"
+                        ToolTip="搜索（回车）">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Ellipse x:Name="circle" Fill="#FFFFFF" Stroke="#DCE6F0" StrokeThickness="1">
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270"
+                                                          Opacity="0.10" Color="#17385C" />
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="17"
+                                           Foreground="{StaticResource PrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="circle" Property="Fill" Value="#F5FAFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                </Grid>
+
+                <Button x:Name="RefreshButton" Width="52" Height="52" Margin="14,2,0,0"
+                        Cursor="Hand" Click="RefreshButton_Click" AutomationProperties.Name="显示全部"
+                        ToolTip="显示全部联系人（F5）">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Ellipse x:Name="refreshCircle" Fill="#FFFFFF" Stroke="#DCE6F0" StrokeThickness="1">
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270"
+                                                          Opacity="0.10" Color="#17385C" />
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                                <TextBlock Text="&#xE117;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                           Foreground="{StaticResource PrimaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="refreshCircle" Property="Fill" Value="#F5FAFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+
+            <!-- 联系人卡片：两列 -->
+            <ScrollViewer x:Name="CardsScroll" Grid.Row="1" Margin="96,4,40,10"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          PreviewMouseLeftButtonDown="CardsScroll_PreviewMouseLeftButtonDown">
+                <UniformGrid x:Name="CardsPanel" Columns="2" VerticalAlignment="Top" />
+            </ScrollViewer>
+
+            <TextBlock x:Name="EmptyHint" Grid.Row="1" Text="还没有联系人，点击下方「添加」开始吧"
+                       Foreground="{StaticResource MutedBrush}" FontSize="15"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
+
+            <!-- 底部按钮 -->
+            <Grid Grid.Row="2" Margin="96,0,40,26">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button x:Name="AddBtn" Style="{StaticResource PrimaryButton}" Width="300" Content="添加"
+                            Click="Add_Click" />
+                    <Button x:Name="DeleteBtn" Style="{StaticResource GhostButton}" Width="300" Content="删除"
+                            Margin="56,0,0,0" IsEnabled="False" Click="Delete_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- ================= 搜索结果浮层 ================= -->
+        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="True">
+            <Border x:Name="ResultsPopup" Visibility="Collapsed" Width="760" MaxHeight="344"
+                    Background="#FDFDFEFF" BorderBrush="#E3EAF2" BorderThickness="1" CornerRadius="16"
+                    Effect="{StaticResource PanelShadow}">
+                <ScrollViewer x:Name="ResultsScroll" MaxHeight="338" Margin="6,8"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="ResultsPanel" />
+                </ScrollViewer>
+            </Border>
+        </Canvas>
+
+        <!-- ================= 左侧悬浮侧边栏 ================= -->
+        <Border x:Name="Sidebar" Width="22" HorizontalAlignment="Left" Margin="4,16,0,16"
+                CornerRadius="0,22,22,0" Background="{StaticResource SidebarBgBrush}"
+                BorderBrush="#DDE7F1" BorderThickness="1" ClipToBounds="True" Panel.ZIndex="80">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="28" ShadowDepth="5" Direction="0" Opacity="0.13" Color="#17385C" />
+            </Border.Effect>
+            <Grid>
+                <Grid x:Name="SidebarContent" Width="340" HorizontalAlignment="Left" Opacity="0"
+                      IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="26,24,20,0">
+                        <TextBlock Text="联系人" FontSize="19" FontWeight="SemiBold"
+                                   Foreground="{StaticResource InkBrush}" />
+                        <TextBlock x:Name="SidebarCount" FontSize="12" Margin="0,3,0,0"
+                                   Foreground="{StaticResource MutedBrush}" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" Margin="0,10,2,14" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="SidebarPanel" Margin="16,0,10,0" />
+                    </ScrollViewer>
+
+                    <TextBlock x:Name="DataPathText" Grid.Row="2" Margin="26,0,18,16"
+                               FontSize="10.5" Foreground="#9AAABB"
+                               TextTrimming="CharacterEllipsis" />
+                </Grid>
+
+                <StackPanel x:Name="SidebarGrip" VerticalAlignment="Center" HorizontalAlignment="Right"
+                            Margin="0,0,6,0" IsHitTestVisible="False">
+                    <Ellipse Width="5" Height="5" Fill="#B9C9DA" Margin="0,3" />
+                    <Ellipse Width="5" Height="5" Fill="#B9C9DA" Margin="0,3" />
+                    <Ellipse Width="5" Height="5" Fill="#B9C9DA" Margin="0,3" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

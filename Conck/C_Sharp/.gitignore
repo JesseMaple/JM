@@ -1,0 +1,30 @@
+# 构建产物
+bin/
+obj/
+dist/
+
+# 注意：result/ 里是随项目交付的可执行文件，特意保留，不上传的话取消下面这行注释
+# result/
+
+# .NET / Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pdb
+*.cache
+
+# 本地工具链（下载到工作区，不写入 PATH）
+.dotnet/
+.nuget/
+
+# 运行时产生的文件
+crash.log
+*.log
+*.tmp
+*.broken
+
+# 程序运行时的数据目录（含联系人数据和头像，不应上传）
+result/data/
+src/bin/*/data/
