@@ -1,0 +1,54 @@
+﻿// GuessNumber.h
+//
+// 界面控件的 ID 全部集中在这里。它们和 Resource.h 里的
+// 菜单/对话框/图标 ID 属于不同的编号段，互不影响。
+//
+#pragma once
+
+#include "Resource.h"
+
+enum ControlId : int {
+    // ---- 游戏页
+    IDC_BTN_SETTINGS = 5001,
+    IDC_LBL_RANGE = 5002,
+    IDC_EDIT_INPUT = 5003,
+    IDC_BTN_GUESS = 5004,
+    IDC_BTN_CLEAR = 5005,
+    IDC_LBL_HINT = 5006,
+    IDC_BTN_DIFF = 5007,
+    IDC_LBL_STATS = 5008,
+
+    IDC_BTN_DIFF_EASY = 5010,
+    IDC_BTN_DIFF_MEDIUM = 5011,
+    IDC_BTN_DIFF_HARD = 5012,
+    IDC_BTN_DIFF_IMPOSSIBLE = 5013,
+
+    // ---- 设置页
+    IDC_BTN_BACK = 5020,
+    IDC_LBL_MODE_TITLE = 5021,
+    IDC_LBL_PRESET_TITLE = 5022,
+    IDC_LBL_COLOR_TITLE = 5023,
+
+    IDC_BTN_MODE_LIGHT = 5030,
+    IDC_BTN_MODE_DARK = 5031,
+    IDC_BTN_MODE_SYSTEM = 5032,
+    IDC_BTN_MODE_CUSTOM = 5033,
+
+    IDC_BTN_PRESET_YELLOW = 5040,
+    IDC_BTN_PRESET_VIOLET = 5041,
+    IDC_BTN_PRESET_SAKURA = 5042,
+    IDC_BTN_PRESET_DEEPSEEK = 5043,
+    IDC_BTN_PRESET_CYAN = 5044,
+
+    IDC_LBL_COLOR_FONT = 5050,
+    IDC_LBL_COLOR_BG = 5051,
+    IDC_LBL_COLOR_BTN = 5052,
+
+    IDC_EDIT_COLOR_FONT = 5060,
+    IDC_EDIT_COLOR_BG = 5061,
+    IDC_EDIT_COLOR_BTN = 5062,
+
+    IDC_BTN_COLOR_FONT = 5070,
+    IDC_BTN_COLOR_BG = 5071,
+    IDC_BTN_COLOR_BTN = 5072,
+};
