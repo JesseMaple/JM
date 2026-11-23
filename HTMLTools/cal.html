@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算器</title>
+    <style>
+        :root {
+            /* 页面底色（你想只在卡片外看到这个色） */
+            --color-bg: #ffffff;
+            /* 卡片内部底色 */
+            --card-bg: #f5b1e35e;
+            /* 按钮色 */
+            --btn-number: #f0f0f0;
+            --btn-operator: #ff9500;
+            --btn-func: #d1d1d6;
+            --btn-text: #333333;
+            --btn-text-white: #ffffff;
+            /* 阴影 */
+            --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --radius-card: 16px;
+            --radius-button: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--color-bg); /* 页面背景，只在卡片外面看到 */
+            font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", "Noto Sans SC", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* 让卡片在页面正中间 */
+            padding: 20px;
+        }
+
+        /* ========== 计算器卡片本体 ========== */
+        .calculator {
+            background-color: var(--card-bg); /* 卡片白色背景 */
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            width: 100%;
+            max-width: 360px; /* 卡片最大宽度，像个真计算器 */
+        }
+
+        /* ========== 显示屏 ========== */
+        .display {
+            background: #f7f7f7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: right;
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            min-height: 80px;
+            word-break: break-all; /* 长数字自动换行 */
+            border: 1px solid #e0e0e0;
+        }
+
+        /* ========== 按钮网格布局 ========== */
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4列，等宽 */
+            gap: 10px; /* 按钮之间的空隙 */
+        }
+
+        /* ========== 按钮通用样式 ========== */
+        .buttons button {
+            padding: 18px 0;
+            font-size: 22px;
+            font-weight: 500;
+            border: none;
+            border-radius: var(--radius-button);
+            cursor: pointer;
+            transition: all 0.15s; /* 点击瞬间的动画 */
+            user-select: none; /* 防止双击选中文字 */
+            -webkit-tap-highlight-color: transparent; /* 去掉手机点击时的高亮 */
+        }
+
+        /* 按钮按下时的效果 */
+        .buttons button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* ========== 不同类型按钮的颜色 ========== */
+        .btn-number {
+            background-color: var(--btn-number);
+            color: var(--btn-text);
+        }
+
+        .btn-operator {
+            background-color: var(--btn-operator);
+            color: var(--btn-text-white);
+        }
+
+        .btn-func {
+            background-color: var(--btn-func);
+            color: var(--btn-text);
+        }
+
+        /* 等号按钮特殊处理，跨两行 */
+        .btn-equals {
+            background-color: var(--btn-operator);
+            color: var(--btn-text-white);
+            grid-row: span 2; /* 占两行高度 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== 计算器卡片 ==================== -->
+    <div class="calculator">
+
+        <!-- 显示屏，用来显示输入和结果 -->
+        <div class="display" id="display">0</div>
+
+        <!-- 按钮区域 -->
+        <div class="buttons">
+            <!-- 第一行：功能键 -->
+            <button class="btn-func" onclick="clearAll()">C</button>
+            <button class="btn-func" onclick="deleteLast()">⌫</button>
+            <button class="btn-func" onclick="appendOperator('%')">%</button>
+            <button class="btn-operator" onclick="appendOperator('/')">÷</button>
+
+            <!-- 第二行：数字 7 8 9 + 乘号 -->
+            <button class="btn-number" onclick="appendNumber('7')">7</button>
+            <button class="btn-number" onclick="appendNumber('8')">8</button>
+            <button class="btn-number" onclick="appendNumber('9')">9</button>
+            <button class="btn-operator" onclick="appendOperator('*')">×</button>
+
+            <!-- 第三行：数字 4 5 6 + 减号 -->
+            <button class="btn-number" onclick="appendNumber('4')">4</button>
+            <button class="btn-number" onclick="appendNumber('5')">5</button>
+            <button class="btn-number" onclick="appendNumber('6')">6</button>
+            <button class="btn-operator" onclick="appendOperator('-')">−</button>
+
+            <!-- 第四行：数字 1 2 3 + 加号 -->
+            <button class="btn-number" onclick="appendNumber('1')">1</button>
+            <button class="btn-number" onclick="appendNumber('2')">2</button>
+            <button class="btn-number" onclick="appendNumber('3')">3</button>
+            <button class="btn-operator" onclick="appendOperator('+')">+</button>
+
+            <!-- 第五行：0 . . 和等号 -->
+            <button class="btn-number" onclick="appendNumber('0')">0</button>
+            <button class="btn-number" onclick="appendNumber('.')">.</button>
+            <button class="btn-func" onclick="appendNumber('00')">00</button>
+            <button class="btn-equals" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display'); // 拿到显示屏元素
+        let currentInput = '0'; // 当前显示屏上的内容，初始为0
+
+        /**
+         * 更新显示屏文字
+         */
+        function updateDisplay() {
+            display.textContent = currentInput;
+        }
+
+        /**
+         * 按数字键（包括小数点）
+         * @param {string} num - 按下的数字字符，比如 '7', '.'
+         */
+        function appendNumber(num) {
+            // 如果当前显示是 '0' 且按的不是小数点，就先清空再拼
+            if (currentInput === '0' && num !== '.') {
+                currentInput = num;
+            } else {
+                // 防止输入多个小数点（比如 "3..5"）
+                if (num === '.' && currentInput.includes('.')) {
+                    return; // 已经有小数点了，直接忽略
+                }
+                currentInput += num;
+            }
+            updateDisplay();
+        }
+
+        /**
+         * 按运算符键（+, -, *, /, %）
+         * @param {string} op - 运算符字符
+         */
+        function appendOperator(op) {
+            // 获取当前输入的最后一个字符
+            const lastChar = currentInput.slice(-1);
+
+            // 如果最后一位已经是运算符，就替换成新的（避免连续两个运算符）
+            if (['+', '-', '*', '/', '%'].includes(lastChar)) {
+                currentInput = currentInput.slice(0, -1) + op;
+            } else {
+                currentInput += op;
+            }
+            updateDisplay();
+        }
+
+        /**
+         * 清空显示屏
+         */
+        function clearAll() {
+            currentInput = '0';
+            updateDisplay();
+        }
+
+        /**
+         * 退格，删除最后一个字符
+         */
+        function deleteLast() {
+            if (currentInput.length === 1 || currentInput === '0') {
+                currentInput = '0';
+            } else {
+                currentInput = currentInput.slice(0, -1);
+            }
+            updateDisplay();
+        }
+
+        /**
+         * 按等号，计算结果
+         */
+        function calculate() {
+            try {
+                // 用 Function 来安全计算表达式（比 eval 更可控一些）
+                // 注意：这里只是练手用的简单实现，真实项目会用更严谨的表达式解析
+                const result = new Function('return ' + currentInput)();
+                // 处理浮点数精度问题（比如 0.1+0.2 不显示 0.30000000000000004）
+                currentInput = String(Math.round(result * 1000000) / 1000000);
+            } catch (e) {
+                currentInput = '错误';
+            }
+            updateDisplay();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工具箱</title>
+<!--
+  ============================================================
+  这个页面由三块组成：顶部导航（含搜索）、左侧目录、右侧内容卡片。
+  想加一个链接，只需要在对应 section 里加一行：
+      <a class="link" href="https://example.com" target="_blank" rel="noopener">名字</a>
+  目录、搜索结果、链接计数都会自动跟着更新，不用改 JS。
+  ============================================================
+-->
+<style>
+    /* ================= 变量 ================= */
+    :root {
+        --primary: #0689ee;       /* 主色（原来 index.html 的蓝） */
+        --primary-ink: #045cad;   /* 深一点的蓝，用于文字 */
+        --gold: #d4a141;          /* 原来的链接金 */
+        --gold-ink: #8f6112;      /* 金色文字加深一档，保证对比度 */
+        --ink: #22303d;           /* 正文 */
+        --muted: #68798a;         /* 次要文字 */
+        --glass: rgba(255, 255, 255, .60);
+        --glass-border: rgba(255, 255, 255, .78);
+        --radius: 15px;
+        --radius-sm: 10px;
+        --shadow: 0 10px 30px rgba(23, 56, 92, .08);
+        --header-h: 0px;          /* 由 JS 实时写入 */
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 10px clamp(14px, 3vw, 28px) 56px;
+        font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+        color: var(--ink);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        background:
+            radial-gradient(1100px 700px at 8% -12%, #d9ecff 0%, rgba(217, 236, 255, 0) 62%),
+            radial-gradient(900px 620px at 96% -6%, #ffe9c9 0%, rgba(255, 233, 201, 0) 58%),
+            radial-gradient(900px 700px at 42% 118%, #e7eefc 0%, rgba(231, 238, 252, 0) 60%),
+            linear-gradient(180deg, #f7fafd 0%, #eef3f9 100%);
+        background-attachment: fixed;
+    }
+
+    /* 背景光斑：毛玻璃需要有东西可“透”才好看 */
+    .bg-blobs {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .blob {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(70px);
+        opacity: .55;
+    }
+
+    .blob-a { width: 460px; height: 460px; left: -140px; top: -120px; background: #9fd0ff; }
+    .blob-b { width: 420px; height: 420px; right: -120px; top: 26%; background: #ffd9a3; }
+
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+
+    /* ================= 毛玻璃通用 ================= */
+    .glass {
+        background: var(--glass);
+        -webkit-backdrop-filter: blur(16px) saturate(160%);
+        backdrop-filter: blur(16px) saturate(160%);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .85);
+    }
+
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .glass { background: rgba(255, 255, 255, .92); }
+    }
+
+    /* ================= 顶部导航 ================= */
+    .top-bar {
+        position: sticky;
+        top: 10px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        max-width: 1180px;
+        margin: 0 auto 18px;
+        padding: 12px 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+    .logo-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--primary);
+        box-shadow: 0 0 0 4px rgba(6, 137, 238, .15);
+        flex: 0 0 auto;
+    }
+
+    .brand h1 {
+        margin: 0;
+        font-size: 1.08rem;
+        letter-spacing: .06em;
+        color: var(--primary-ink);
+        line-height: 1.2;
+    }
+
+    .crumb {
+        font-size: .74rem;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 220px;
+    }
+
+    /* ---------- 搜索 ---------- */
+    .search {
+        position: relative;
+        flex: 1 1 260px;
+        max-width: 420px;
+        margin-left: auto;
+    }
+
+    .search input {
+        width: 100%;
+        padding: 9px 58px 9px 36px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, .85);
+        background: rgba(255, 255, 255, .55);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        font-family: inherit;
+        font-size: .88rem;
+        color: var(--ink);
+        outline: none;
+        transition: background .2s, border-color .2s, box-shadow .2s;
+        -webkit-appearance: none;
+    }
+
+    .search input::placeholder { color: #93a3b3; }
+
+    .search input:focus {
+        background: #fff;
+        border-color: rgba(6, 137, 238, .45);
+        box-shadow: 0 0 0 4px rgba(6, 137, 238, .12);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 15px;
+        height: 15px;
+        color: #8fa0b1;
+        pointer-events: none;
+    }
+
+    .kbd {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: inherit;
+        font-size: .68rem;
+        color: #93a3b3;
+        background: rgba(255, 255, 255, .8);
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 6px;
+        padding: 1px 6px;
+        pointer-events: none;
+    }
+
+    .search input:focus ~ .kbd { opacity: 0; }
+
+    /* ---------- 搜索下拉 ---------- */
+    .results {
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 0;
+        right: 0;
+        z-index: 60;
+        max-height: min(58vh, 430px);
+        overflow: auto;
+        padding: 8px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .94);
+        border: 1px solid rgba(255, 255, 255, .9);
+        box-shadow: 0 22px 50px rgba(20, 50, 90, .18);
+    }
+
+    .results-head {
+        padding: 6px 10px;
+        font-size: .7rem;
+        letter-spacing: .06em;
+        color: var(--muted);
+    }
+
+    .results-empty {
+        padding: 16px 10px;
+        font-size: .85rem;
+        color: var(--muted);
+        text-align: center;
+    }
+
+    .hit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 9px;
+        text-decoration: none;
+        color: var(--ink);
+        font-size: .86rem;
+        transition: background .15s;
+    }
+
+    .hit:hover,
+    .hit.active { background: rgba(6, 137, 238, .10); }
+
+    .hit-cat {
+        flex: 0 0 auto;
+        max-width: 42%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: .68rem;
+        color: var(--muted);
+        background: rgba(255, 255, 255, .8);
+        border: 1px solid rgba(0, 0, 0, .05);
+        border-radius: 999px;
+        padding: 2px 8px;
+    }
+
+    .hit-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .hit mark {
+        background: rgba(212, 161, 65, .30);
+        color: inherit;
+        border-radius: 3px;
+        padding: 0 1px;
+    }
+
+    /* ================= 布局 ================= */
+    .layout {
+        display: grid;
+        grid-template-columns: 232px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    /* ---------- 侧边栏 ---------- */
+    .sidebar {
+        position: sticky;
+        top: calc(var(--header-h) + 12px);
+        max-height: calc(100vh - var(--header-h) - 32px);
+        overflow: auto;
+        padding: 14px 12px 10px;
+        scrollbar-width: thin;
+    }
+
+    .toc-group {
+        font-size: .68rem;
+        letter-spacing: .14em;
+        color: #93a3b3;
+        margin: 10px 0 4px;
+        padding-left: 10px;
+    }
+
+    .toc-group:first-child { margin-top: 0; }
+
+    .toc-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 9px;
+        color: #42566b;
+        text-decoration: none;
+        font-size: .84rem;
+        transition: background .18s, color .18s;
+    }
+
+    .toc-link::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #c9d5e2;
+        transition: background .18s, box-shadow .18s;
+        flex: 0 0 auto;
+    }
+
+    .toc-link:hover { background: rgba(6, 137, 238, .07); color: var(--primary-ink); }
+
+    .toc-link.active {
+        background: rgba(6, 137, 238, .12);
+        color: var(--primary-ink);
+        font-weight: 600;
+    }
+
+    .toc-link.active::before {
+        background: var(--primary);
+        box-shadow: 0 0 0 3px rgba(6, 137, 238, .18);
+    }
+
+    .back-top {
+        display: block;
+        margin: 12px 2px 2px;
+        padding: 7px 10px;
+        font-size: .76rem;
+        color: var(--muted);
+        text-decoration: none;
+        border-top: 1px dashed rgba(0, 0, 0, .08);
+        transition: color .18s;
+    }
+
+    .back-top:hover { color: var(--primary-ink); }
+
+    /* ---------- 移动端快捷跳转 ---------- */
+    .chips {
+        display: none;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 2px 2px 12px;
+        scrollbar-width: none;
+    }
+
+    .chips::-webkit-scrollbar { display: none; }
+
+    .chip {
+        flex: 0 0 auto;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: .8rem;
+        color: #42566b;
+        text-decoration: none;
+        background: rgba(255, 255, 255, .62);
+        border: 1px solid rgba(255, 255, 255, .85);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        transition: background .18s, color .18s;
+    }
+
+    .chip.active {
+        background: rgba(6, 137, 238, .14);
+        color: var(--primary-ink);
+        font-weight: 600;
+        border-color: rgba(6, 137, 238, .35);
+    }
+
+    /* ================= 内容卡片 ================= */
+    .card {
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        scroll-margin-top: calc(var(--header-h) + 22px);
+    }
+
+    .card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 16px;
+        font-size: 1.1rem;
+        letter-spacing: .03em;
+        color: var(--primary-ink);
+    }
+
+    .card-title::before {
+        content: "";
+        width: 4px;
+        height: 18px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, var(--primary), #63b8ff);
+        flex: 0 0 auto;
+    }
+
+    .count {
+        margin-left: auto;
+        font-size: .7rem;
+        font-weight: 500;
+        color: var(--muted);
+        background: rgba(255, 255, 255, .65);
+        border: 1px solid rgba(0, 0, 0, .04);
+        border-radius: 999px;
+        padding: 1px 9px;
+    }
+
+    .group + .group { margin-top: 18px; }
+
+    .group-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 8px;
+        font-size: .76rem;
+        letter-spacing: .08em;
+        color: var(--gold-ink);
+    }
+
+    .group-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(212, 161, 65, .45), rgba(212, 161, 65, 0));
+    }
+
+    .link-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 8px;
+    }
+
+    /* ---------- 毛玻璃链接 ---------- */
+    .link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 11px;
+        color: var(--gold-ink);
+        text-decoration: none;
+        font-size: .85rem;
+        font-weight: 500;
+        line-height: 1.35;
+        background: linear-gradient(135deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .28));
+        border: 1px solid rgba(255, 255, 255, .78);
+        -webkit-backdrop-filter: blur(8px) saturate(140%);
+        backdrop-filter: blur(8px) saturate(140%);
+        box-shadow: 0 2px 8px rgba(23, 56, 92, .05);
+        transition: transform .18s, box-shadow .18s, color .18s, border-color .18s;
+    }
+
+    .link:hover {
+        transform: translateY(-2px);
+        color: var(--primary-ink);
+        border-color: rgba(6, 137, 238, .35);
+        box-shadow: 0 8px 20px rgba(6, 137, 238, .14);
+    }
+
+    .link:active { transform: translateY(0) scale(.985); }
+
+    .link::after {
+        content: "↗";
+        margin-left: auto;
+        font-size: .72rem;
+        opacity: .35;
+        transition: opacity .18s, transform .18s;
+        flex: 0 0 auto;
+    }
+
+    .link:hover::after { opacity: 1; transform: translate(1px, -1px); }
+
+    /* 站内页面用 → 而不是 ↗，避免看起来像外链 */
+    .link:not([href^="http"])::after { content: "→"; }
+
+    /* ================= 页脚 ================= */
+    .foot {
+        margin-top: 6px;
+        padding: 20px 24px 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 16px 24px;
+        align-items: start;
+    }
+
+    .foot-block {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .foot-title {
+        margin: 0;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .14em;
+        color: #93a3b3;
+    }
+
+    .foot-block .link { font-size: .84rem; }
+
+    .foot-note {
+        grid-column: 1 / -1;
+        margin-top: 2px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(0, 0, 0, .08);
+        text-align: center;
+        font-size: .76rem;
+        color: var(--muted);
+    }
+
+    /* ================= 响应式 ================= */
+    @media (max-width: 900px) {
+        .layout { grid-template-columns: minmax(0, 1fr); }
+        .sidebar { display: none; }
+        .chips { display: flex; }
+        .search { margin-left: 0; flex-basis: 100%; max-width: none; order: 3; }
+        .brand { order: 1; }
+        .kbd { display: none; }
+        .card { padding: 18px 16px; }
+        .link-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    }
+
+    @media (max-width: 420px) {
+        .crumb { display: none; }
+        .card-title { font-size: 1.02rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        * { transition: none !important; animation: none !important; }
+    }
+</style>
+</head>
+<body>
+
+<div class="bg-blobs" aria-hidden="true">
+    <span class="blob blob-a"></span>
+    <span class="blob blob-b"></span>
+</div>
+
+<!-- ==================== 顶部导航 ==================== -->
+<header class="top-bar glass" id="top">
+    <div class="brand">
+        <span class="logo-dot" aria-hidden="true"></span>
+        <div class="brand-text">
+            <h1>工具箱</h1>
+            <div class="crumb" id="crumb">链接区</div>
+        </div>
+    </div>
+
+    <div class="search">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="q" type="search" placeholder="搜索链接：豆包 / API / 招聘…"
+               autocomplete="off" spellcheck="false"
+               aria-label="搜索本站链接" aria-controls="results" aria-expanded="false">
+        <kbd class="kbd">Ctrl K</kbd>
+        <div class="results" id="results" role="listbox" aria-label="搜索结果" hidden></div>
+    </div>
+</header>
+
+<div class="layout">
+
+    <!-- ==================== 侧边栏 ==================== -->
+    <aside class="sidebar glass">
+        <nav id="toc" aria-label="页面目录"></nav>
+        <a class="back-top" href="#ai">↑ 回到顶部</a>
+    </aside>
+
+    <!-- ==================== 主内容 ==================== -->
+    <main>
+        <nav class="chips" id="chips" aria-label="快速跳转"></nav>
+
+        <!-- AI 工具 -->
+        <section class="card glass" id="ai" data-title="AI 工具" data-group="链接区" aria-labelledby="ai-title">
+            <h2 class="card-title" id="ai-title">AI 工具<span class="count" aria-hidden="true"></span></h2>
+
+            <div class="group">
+                <h3 class="group-title">DeepSeek</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.deepseek.com/" target="_blank" rel="noopener">DeepSeek 主页</a>
+                    <a class="link" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek 聊天</a>
+                    <a class="link" href="https://platform.deepseek.com/usage" target="_blank" rel="noopener">DeepSeek API</a>
+                    <a class="link" href="https://api-docs.deepseek.com/zh-cn/quick_start/pricing/" target="_blank" rel="noopener">定价与使用方法</a>
+                    <a class="link" href="https://www.deepseek.com/harness/" target="_blank" rel="noopener">Harness 下载</a>
+                    <a class="link" href="https://www.deepseek.com/download/" target="_blank" rel="noopener">DeepSeek 下载</a>
+                    <a class="link" href="https://status.deepseek.com/" target="_blank" rel="noopener">DeepSeek 状态</a>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3 class="group-title">豆包与火山引擎</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.doubao.com/chat/" target="_blank" rel="noopener">豆包 聊天</a>
+                    <a class="link" href="https://www.doubao.com/download/desktop" target="_blank" rel="noopener">豆包 下载</a>
+                    <a class="link" href="https://www.volcengine.com/product/ark" target="_blank" rel="noopener">火山引擎 Ark</a>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3 class="group-title">通义千问</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.qianwen.com/" target="_blank" rel="noopener">通义千问 聊天</a>
+                    <a class="link" href="https://b.qianwen.com/apps/qkhomepage_twofoufeb/routes/l5Utxkrh6?entry=pcqwen@sem_bing_brand_ymbingsempcqw1_15&amp;ch=pcqwen@sem_bing_brand_ymbingsempcqw1_15&amp;image=brand&amp;dp=&amp;planid=487539744&amp;unitid=1231454379639446&amp;a_keywordid=76966365863753&amp;a_creative=76966049874969&amp;a_matchtype=e&amp;a_keyword=%E9%80%9A%E4%B9%89%E5%8D%83%E9%97%AE%E2%80%98%E2%80%99&amp;query=%E9%80%9A%E4%B9%89%E5%8D%83%E9%97%AE&amp;from=bingsem&amp;aid=188274863&amp;msclkid=2d424911e1aa1d68b7da2213196a1e5b" target="_blank" rel="noopener">下载（活动页）</a>
+                    <a class="link" href="https://www.qianwen.com/download" target="_blank" rel="noopener">下载（国内官网）</a>
+                    <a class="link" href="https://qwen.ai/download" target="_blank" rel="noopener">下载（国际版）</a>
+                    <a class="link" href="https://www.qianwenai.com/?source_channel=hy_qwen&amp;utm_content=g_1000415132" target="_blank" rel="noopener">通义千问 API</a>
+                    <a class="link" href="https://qwenwork.cn/download" target="_blank" rel="noopener">千问办公</a>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3 class="group-title">Kimi</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://platform.kimi.com/" target="_blank" rel="noopener">Kimi API</a>
+                    <a class="link" href="https://www.kimi.com/" target="_blank" rel="noopener">Kimi 聊天</a>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3 class="group-title">更多 AI</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.chargpt.com" target="_blank" rel="noopener">ChatGPT</a>
+                    <a class="link" href="https://chat.openai.com" target="_blank" rel="noopener">OpenAI</a>
+                    <a class="link" href="https://gemini.google.com" target="_blank" rel="noopener">Gemini</a>
+                    <a class="link" href="https://jvsclaw.aliyun.com" target="_blank" rel="noopener">OpenClaw 部署</a>
+                    <a class="link" href="https://www.antafu.com" target="_blank" rel="noopener">蚂蚁阿福</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 游戏工具 -->
+        <section class="card glass" id="game" data-title="游戏工具" data-group="链接区" aria-labelledby="game-title">
+            <h2 class="card-title" id="game-title">游戏工具<span class="count" aria-hidden="true"></span></h2>
+
+            <div class="group">
+                <h3 class="group-title">官方网站</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.steampowered.com" target="_blank" rel="noopener">Steam</a>
+                    <a class="link" href="https://www.epicgames.com" target="_blank" rel="noopener">Epic</a>
+                    <a class="link" href="https://www.gog.com" target="_blank" rel="noopener">GOG</a>
+                    <a class="link" href="https://www.valvesoftware.com" target="_blank" rel="noopener">Valve</a>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3 class="group-title">民间网站</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.ets2.store" target="_blank" rel="noopener">欧卡小站</a>
+                    <a class="link" href="https://pcl2.aoe.top/" target="_blank" rel="noopener">PCL2</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 影音工具 -->
+        <section class="card glass" id="media" data-title="影音工具" data-group="链接区" aria-labelledby="media-title">
+            <h2 class="card-title" id="media-title">影音工具<span class="count" aria-hidden="true"></span></h2>
+
+            <div class="group">
+                <h3 class="group-title">影视</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.douyin.com" target="_blank" rel="noopener">抖音精选</a>
+                    <a class="link" href="https://www.bilibili.com" target="_blank" rel="noopener">Bilibili</a>
+                    <a class="link" href="https://www.kuaishou.com" target="_blank" rel="noopener">快手</a>
+                    <a class="link" href="https://www.ixigua.com" target="_blank" rel="noopener">西瓜视频</a>
+                    <a class="link" href="https://www.acfun.cn" target="_blank" rel="noopener">AcFun</a>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3 class="group-title">音频</h3>
+                <div class="link-grid">
+                    <a class="link" href="https://www.qqmusic.com/" target="_blank" rel="noopener">QQ 音乐</a>
+                    <a class="link" href="https://www.kugou.com/" target="_blank" rel="noopener">酷狗音乐</a>
+                    <a class="link" href="https://www.kuwo.cn/" target="_blank" rel="noopener">酷我音乐</a>
+                    <a class="link" href="https://music.163.com/" target="_blank" rel="noopener">网易云音乐</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 社交工具 -->
+        <section class="card glass" id="social" data-title="社交工具" data-group="链接区" aria-labelledby="social-title">
+            <h2 class="card-title" id="social-title">社交工具<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="https://www.weixin.qq.com/" target="_blank" rel="noopener">微信</a>
+                <a class="link" href="https://work.weixin.qq.com/" target="_blank" rel="noopener">微信企业版</a>
+                <a class="link" href="https://im.qq.com/" target="_blank" rel="noopener">QQ</a>
+                <a class="link" href="https://tim.qq.com/" target="_blank" rel="noopener">QQ TIM 版</a>
+                <a class="link" href="https://mail.qq.com/" target="_blank" rel="noopener">QQ 邮箱</a>
+                <a class="link" href="https://www.duoshan.com/" target="_blank" rel="noopener">多闪</a>
+            </div>
+        </section>
+
+        <!-- 资讯信息 -->
+        <section class="card glass" id="news" data-title="资讯信息" data-group="链接区" aria-labelledby="news-title">
+            <h2 class="card-title" id="news-title">资讯信息<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="https://www.qq.com/" target="_blank" rel="noopener">腾讯新闻</a>
+                <a class="link" href="https://www.news.com/" target="_blank" rel="noopener">新闻</a>
+                <a class="link" href="https://www.163.com/" target="_blank" rel="noopener">网易新闻</a>
+                <a class="link" href="https://www.ithome.com/" target="_blank" rel="noopener">IT 之家</a>
+                <a class="link" href="https://www.feng.com/" target="_blank" rel="noopener">威锋网</a>
+                <a class="link" href="https://www.china.com.cn/" target="_blank" rel="noopener">中国网</a>
+                <a class="link" href="https://www.weibo.com/" target="_blank" rel="noopener">微博</a>
+                <a class="link" href="https://www.toutiao.com/" target="_blank" rel="noopener">今日头条</a>
+            </div>
+        </section>
+
+        <!-- 浏览器 -->
+        <section class="card glass" id="browser" data-title="浏览器" data-group="链接区" aria-labelledby="browser-title">
+            <h2 class="card-title" id="browser-title">浏览器<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="https://sj.qq.com/appdetail/com.tencent.pcgame.qqbrowser" target="_blank" rel="noopener">QQ 浏览器</a>
+                <a class="link" href="https://www.microsoft.com/edge/" target="_blank" rel="noopener">Edge</a>
+                <a class="link" href="https://www.mozilla.org/firefox/" target="_blank" rel="noopener">Firefox</a>
+                <a class="link" href="https://www.google.cn/chrome/" target="_blank" rel="noopener">Chrome</a>
+                <a class="link" href="https://www.apple.com/safari/" target="_blank" rel="noopener">Safari</a>
+                <a class="link" href="https://www.opera.com/" target="_blank" rel="noopener">Opera</a>
+                <a class="link" href="https://www.baidu.com/" target="_blank" rel="noopener">百度</a>
+                <a class="link" href="https://browser.360.cn/" target="_blank" rel="noopener">360 安全浏览器</a>
+                <a class="link" href="https://browser.vivo.com.cn/" target="_blank" rel="noopener">vivo 浏览器</a>
+            </div>
+        </section>
+
+        <!-- 学习网站 -->
+        <section class="card glass" id="study" data-title="学习网站" data-group="链接区" aria-labelledby="study-title">
+            <h2 class="card-title" id="study-title">学习网站<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="https://www.icourse.org/" target="_blank" rel="noopener">中国大学生 MOOC</a>
+                <a class="link" href="https://www.chaoxing.com/" target="_blank" rel="noopener">学习通</a>
+                <a class="link" href="https://course.educg.net/" target="_blank" rel="noopener">希冀</a>
+                <a class="link" href="https://dasai.lanqiao.cn/" target="_blank" rel="noopener">蓝桥杯</a>
+                <a class="link" href="https://www.luogu.com.cn/" target="_blank" rel="noopener">洛谷</a>
+                <a class="link" href="https://leetcode-cn.com/" target="_blank" rel="noopener">LeetCode</a>
+                <a class="link" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </section>
+
+        <!-- 工作交流 -->
+        <section class="card glass" id="job" data-title="工作交流" data-group="链接区" aria-labelledby="job-title">
+            <h2 class="card-title" id="job-title">工作交流<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="https://www.nowcoder.com/" target="_blank" rel="noopener">牛客网</a>
+                <a class="link" href="https://www.zhipin.com/" target="_blank" rel="noopener">BOSS 直聘</a>
+                <a class="link" href="https://www.58.com/" target="_blank" rel="noopener">58 同城</a>
+                <a class="link" href="https://www.lagou.com/" target="_blank" rel="noopener">拉勾</a>
+                <a class="link" href="https://www.zhaopin.com/" target="_blank" rel="noopener">智联招聘</a>
+                <a class="link" href="https://www.liepin.com/" target="_blank" rel="noopener">猎聘</a>
+                <a class="link" href="https://www.iguopin.com/" target="_blank" rel="noopener">国聘网</a>
+                <a class="link" href="https://job.ncss.cn/" target="_blank" rel="noopener">国家大学生就业服务平台</a>
+            </div>
+        </section>
+
+        <!-- 汽车资讯 -->
+        <section class="card glass" id="auto" data-title="汽车资讯" data-group="链接区" aria-labelledby="auto-title">
+            <h2 class="card-title" id="auto-title">汽车资讯<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="https://www.autohome.com.cn/" target="_blank" rel="noopener">汽车之家</a>
+                <a class="link" href="https://www.360che.com/" target="_blank" rel="noopener">卡车之家</a>
+                <a class="link" href="https://www.dongchedi.com/" target="_blank" rel="noopener">懂车帝</a>
+            </div>
+        </section>
+
+        <!-- 目标小记 -->
+        <section class="card glass" id="goals" data-title="目标小记" data-group="目标小记" aria-labelledby="goals-title">
+            <h2 class="card-title" id="goals-title">目标小记<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="LiveToday.html">「今日事」记事本</a>
+                <a class="link" href="StudyTarget.html">学习目标</a>
+                <a class="link" href="GameTarget.html">游戏目标</a>
+                <a class="link" href="SportsTarget.html">运动目标</a>
+            </div>
+        </section>
+
+        <!-- 计算器 -->
+        <section class="card glass" id="calc" data-title="计算器" data-group="计算器" aria-labelledby="calc-title">
+            <h2 class="card-title" id="calc-title">计算器<span class="count" aria-hidden="true"></span></h2>
+            <div class="link-grid">
+                <a class="link" href="cal.html">简易计算器</a>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer class="foot glass">
+            <div class="foot-block">
+                <h2 class="foot-title">源代码</h2>
+                <a class="link" href="https://github.com/JokerChau/WebTool" target="_blank" rel="noopener">源代码仓库</a>
+            </div>
+
+            <div class="foot-block">
+                <h2 class="foot-title">其他作品</h2>
+                <a class="link" href="https://github.com/JokerChau/JCBase" target="_blank" rel="noopener">C语言基础容器</a>
+            </div>
+
+            <div class="foot-note">本地工具箱 · 自用 · 共 <span id="total">0</span> 个链接</div>
+        </footer>
+    </main>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var header = document.querySelector('.top-bar');
+    var root = document.documentElement;
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main > section.card'));
+    var links = Array.prototype.slice.call(document.querySelectorAll('a.link')).filter(function (a) {
+        return !a.closest('footer');
+    });
+    var input = document.getElementById('q');
+    var panel = document.getElementById('results');
+    var toc = document.getElementById('toc');
+    var chips = document.getElementById('chips');
+    var crumb = document.getElementById('crumb');
+    var total = document.getElementById('total');
+
+    /* ---------- 1. 顶部高度：给 sticky 侧栏和锚点定位用 ---------- */
+    function syncHeader() {
+        var h = header.getBoundingClientRect().height + 20;
+        root.style.setProperty('--header-h', Math.round(h) + 'px');
+    }
+    syncHeader();
+    window.addEventListener('resize', syncHeader);
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(syncHeader);
+    }
+
+    /* ---------- 2. 生成目录 + 移动端快捷跳转 ---------- */
+    var lastGroup = null;
+    sections.forEach(function (sec) {
+        var group = sec.dataset.group || '';
+        if (group && group !== lastGroup) {
+            var g = document.createElement('div');
+            g.className = 'toc-group';
+            g.textContent = group;
+            toc.appendChild(g);
+            lastGroup = group;
+        }
+
+        var a = document.createElement('a');
+        a.className = 'toc-link';
+        a.href = '#' + sec.id;
+        a.dataset.target = sec.id;
+        a.textContent = sec.dataset.title;
+        toc.appendChild(a);
+
+        var chip = document.createElement('a');
+        chip.className = 'chip';
+        chip.href = '#' + sec.id;
+        chip.dataset.target = sec.id;
+        chip.textContent = sec.dataset.title;
+        chips.appendChild(chip);
+    });
+
+    /* ---------- 3. 每张卡片的链接数量 ---------- */
+    sections.forEach(function (sec) {
+        var badge = sec.querySelector('.count');
+        if (badge) badge.textContent = sec.querySelectorAll('a.link').length;
+    });
+    total.textContent = links.length;
+
+    /* ---------- 4. 滚动监听：高亮目录 + 顶部面包屑 ---------- */
+    var spyEls = Array.prototype.slice.call(document.querySelectorAll('[data-target]'));
+    var currentId = '';
+
+    function setActive(id) {
+        if (id === currentId) return;
+        currentId = id;
+        spyEls.forEach(function (el) {
+            var on = el.dataset.target === id;
+            el.classList.toggle('active', on);
+            if (el.classList.contains('toc-link')) {
+                if (on) el.setAttribute('aria-current', 'location');
+                else el.removeAttribute('aria-current');
+            }
+        });
+        var sec = document.getElementById(id);
+        if (sec) {
+            var g = sec.dataset.group || '';
+            crumb.textContent = g ? g + ' › ' + sec.dataset.title : sec.dataset.title;
+        }
+    }
+
+    function onScroll() {
+        if (!sections.length) return;
+        var line = header.getBoundingClientRect().bottom + 56;
+        var id = sections[0].id;
+        for (var i = 0; i < sections.length; i++) {
+            if (sections[i].getBoundingClientRect().top <= line) id = sections[i].id;
+            else break;
+        }
+        // 滚到最底部时，直接标最后一张卡片
+        if (window.innerHeight + window.pageYOffset >= document.documentElement.scrollHeight - 2) {
+            id = sections[sections.length - 1].id;
+        }
+        setActive(id);
+    }
+
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+        if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(function () {
+                onScroll();
+                ticking = false;
+            });
+        }
+    }, { passive: true });
+    window.addEventListener('resize', onScroll);
+    onScroll();
+
+    /* ---------- 5. 搜索 ---------- */
+    var items = links.map(function (a) {
+        var sec = a.closest('section');
+        var group = a.closest('.group');
+        var sub = group ? group.querySelector('.group-title') : null;
+        return {
+            href: a.getAttribute('href'),
+            label: a.textContent.trim(),
+            section: sec ? (sec.dataset.title || '') : '',
+            sub: sub ? sub.textContent.trim() : ''
+        };
+    });
+
+    function scoreOf(text, q) {
+        if (!text) return -1;
+        var t = text.toLowerCase();
+        var idx = t.indexOf(q);
+        if (idx > -1) return 100 - Math.min(idx, 45);   // 连续命中，越靠前越高
+        var pos = 0, gaps = 0;
+        for (var i = 0; i < q.length; i++) {            // 模糊：按顺序能凑出来也算
+            var p = t.indexOf(q.charAt(i), pos);
+            if (p === -1) return -1;
+            gaps += p - pos;
+            pos = p + 1;
+        }
+        return 32 - Math.min(gaps, 24);
+    }
+
+    var hits = [];
+    var activeIdx = -1;
+
+    function highlight(text, q) {
+        var frag = document.createDocumentFragment();
+        var i = text.toLowerCase().indexOf(q);
+        if (i < 0) {
+            frag.appendChild(document.createTextNode(text));
+            return frag;
+        }
+        frag.appendChild(document.createTextNode(text.slice(0, i)));
+        var mark = document.createElement('mark');
+        mark.textContent = text.slice(i, i + q.length);
+        frag.appendChild(mark);
+        frag.appendChild(document.createTextNode(text.slice(i + q.length)));
+        return frag;
+    }
+
+    function closePanel() {
+        panel.hidden = true;
+        panel.innerHTML = '';
+        input.setAttribute('aria-expanded', 'false');
+        activeIdx = -1;
+    }
+
+    function openItem(item) {
+        if (!item) return;
+        closePanel();
+        if (item.href.charAt(0) === '#') {
+            var el = document.querySelector(item.href);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (/^https?:/i.test(item.href)) {
+            window.open(item.href, '_blank', 'noopener');
+        } else {
+            window.location.href = item.href;
+        }
+    }
+
+    function render(raw) {
+        var q = raw.trim().toLowerCase();
+        if (!q) { closePanel(); return; }
+
+        hits = items.map(function (item) {
+            var a1 = scoreOf(item.label, q);
+            var a2 = scoreOf(item.sub + ' ' + item.section, q);
+            var score = Math.max(a1 < 0 ? -1 : a1 + 20, a2);  // 标题命中权重更高
+            return { item: item, score: score };
+        }).filter(function (h) {
+            return h.score >= 0;
+        }).sort(function (a, b) {
+            return b.score - a.score;
+        }).slice(0, 12).map(function (h) {
+            return h.item;
+        });
+
+        panel.innerHTML = '';
+        activeIdx = -1;
+
+        if (!hits.length) {
+            var empty = document.createElement('div');
+            empty.className = 'results-empty';
+            empty.textContent = '没有匹配到「' + raw.trim() + '」';
+            panel.appendChild(empty);
+        } else {
+            var head = document.createElement('div');
+            head.className = 'results-head';
+            head.textContent = '匹配 ' + hits.length + ' 条 · ↑↓ 选择 · Enter 打开';
+            panel.appendChild(head);
+
+            hits.forEach(function (item, i) {
+                var row = document.createElement('a');
+                row.className = 'hit';
+                row.href = item.href;
+                row.dataset.i = String(i);
+
+                var cat = document.createElement('span');
+                cat.className = 'hit-cat';
+                cat.textContent = item.section + (item.sub ? ' · ' + item.sub : '');
+
+                var txt = document.createElement('span');
+                txt.className = 'hit-text';
+                txt.appendChild(highlight(item.label, q));
+
+                row.appendChild(cat);
+                row.appendChild(txt);
+                panel.appendChild(row);
+            });
+        }
+
+        panel.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+    }
+
+    function move(delta) {
+        var rows = panel.querySelectorAll('.hit');
+        if (!rows.length) return;
+        activeIdx = (activeIdx + delta + rows.length) % rows.length;
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].classList.toggle('active', i === activeIdx);
+        }
+        rows[activeIdx].scrollIntoView({ block: 'nearest' });
+    }
+
+    input.addEventListener('input', function () { render(input.value); });
+    input.addEventListener('focus', function () {
+        if (input.value.trim()) render(input.value);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (!panel.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            move(e.key === 'ArrowDown' ? 1 : -1);
+        } else if (e.key === 'Enter') {
+            if (!panel.hidden && hits.length) {
+                e.preventDefault();
+                openItem(hits[activeIdx < 0 ? 0 : activeIdx]);
+            }
+        } else if (e.key === 'Escape') {
+            closePanel();
+            input.blur();
+        }
+    });
+
+    panel.addEventListener('click', function (e) {
+        var row = e.target.closest('.hit');
+        if (!row) return;
+        e.preventDefault();
+        openItem(hits[Number(row.dataset.i)]);
+    });
+
+    document.addEventListener('pointerdown', function (e) {
+        if (!panel.contains(e.target) && e.target !== input) closePanel();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            input.focus();
+            input.select();
+        }
+    });
+})();
+</script>
+</body>
+</html>
