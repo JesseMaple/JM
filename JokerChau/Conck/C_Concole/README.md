@@ -9,3 +9,6 @@
 # UPDATE
 ## v26.1
 With JCBase-v26.12-α Dll, main menu of Conck-v26.1 has been released.
+
+## v26.2
+Finished add function ui

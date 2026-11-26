@@ -7,6 +7,6 @@
 
 #pragma once
 
-int app(void);
+int app();
 
 #endif //CONCK_UI_H
